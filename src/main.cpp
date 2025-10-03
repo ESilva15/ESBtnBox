@@ -78,6 +78,56 @@ const size_t NUM_ROWS = 6;
 uint8_t cols[] = {OUT_P0, OUT_P1, OUT_P2, OUT_P3, OUT_P4};
 const size_t NUM_COLS = 5;
 
+// Define the matrix state. Its all HIGH because of it being INPUT_PULLUP
+// This is the matrix we will use to send the things to the JoyScick library
+const unsigned long debounceDelay = 20;
+uint8_t lastReading[NUM_ROWS][NUM_COLS] = {
+  {HIGH, HIGH, HIGH, HIGH, HIGH},
+  {HIGH, HIGH, HIGH, HIGH, HIGH},
+  {HIGH, HIGH, HIGH, HIGH, HIGH},
+  {HIGH, HIGH, HIGH, HIGH, HIGH},
+  {HIGH, HIGH, HIGH, HIGH, HIGH},
+  {HIGH, HIGH, HIGH, HIGH, HIGH},
+};
+
+uint8_t debouncedBtns[NUM_ROWS][NUM_COLS] = {
+  {HIGH, HIGH, HIGH, HIGH, HIGH},
+  {HIGH, HIGH, HIGH, HIGH, HIGH},
+  {HIGH, HIGH, HIGH, HIGH, HIGH},
+  {HIGH, HIGH, HIGH, HIGH, HIGH},
+  {HIGH, HIGH, HIGH, HIGH, HIGH},
+  {HIGH, HIGH, HIGH, HIGH, HIGH},
+};
+
+// This matrix we will use to debounce
+unsigned long lastDebounceTime[NUM_ROWS][NUM_COLS] = {
+  {0, 0, 0, 0, 0},
+  {0, 0, 0, 0, 0},
+  {0, 0, 0, 0, 0},
+  {0, 0, 0, 0, 0},
+  {0, 0, 0, 0, 0},
+  {0, 0, 0, 0, 0},
+};
+
+// Scan Results to be used each loop
+uint8_t results[NUM_ROWS] = {
+  0b11111111,
+  0b11111111,
+  0b11111111,
+  0b11111111,
+  0b11111111,
+  0b11111111,
+};
+
+// Colmasks
+const uint8_t colMasks[NUM_COLS] = {
+  0b00000001,
+  0b00000010,
+  0b00000100,
+  0b00001000,
+  0b00010000
+};
+
 SR595N input = NewSR595N(IN_SERIAL_PIN, IN_LATCH_PIN, IN_CLOCK_PIN);
 SR165 output = NewSR165(OUT_PARALLEL_LOAD_IN, OUT_CLOCK_ENABLE, 
                         OUT_CLOCK_IN, OUT_COMPLEMENTARY_OUT);
@@ -106,20 +156,54 @@ void setup() {
   SR595N_write(&input, 0b00000100);
 }
 
+// TODO - comment this debugging thing at the end
+unsigned long lastPrint = 0;
 void loop(void) {
-  uint8_t scanResults[NUM_ROWS];
-
+  // TODO - There's always something todo
+  // I recon we can do everything in this single loop instead of doing two
+  // loops
   for (size_t row = 0; row < NUM_ROWS ; row++) {
     SR595N_write(&input, rows[row]);
-    delayMicroseconds(5);
-  
-    scanResults[row] = SR165_read(&output);
-  }
-  
-  Serial.print("\033[2J\033[H");
-  for(size_t row = 0; row < NUM_ROWS; row++) {
-    Serial.println(scanResults[row], BIN);
+    results[row] = SR165_read(&output);
   }
 
-  delay(35);
+  unsigned long currentMillis = millis();
+  for (size_t r = 0; r < NUM_ROWS; r++) {
+    for (size_t c = 0; c < NUM_COLS; c++) {
+      uint8_t reading = (results[r] & colMasks[c]) ? HIGH : LOW;
+
+      // Reset the timer if it changes
+      if (reading != lastReading[r][c]) {
+        lastDebounceTime[r][c] = currentMillis;
+      }
+
+      if ((currentMillis - lastDebounceTime[r][c]) > debounceDelay) {
+        if (reading != debouncedBtns[r][c]) {
+          debouncedBtns[r][c] = reading;
+
+          int buttonIndex = r * NUM_COLS + c;
+          Joystick.setButton(buttonIndex, (reading == LOW));
+        }
+      }
+
+      lastReading[r][c] = reading;
+    }
+  }
+
+  if (millis() - lastPrint >= 50) {
+    Serial.print("\033[2J\033[H");
+    for (size_t row = 0; row < NUM_ROWS; row++) {
+      for (size_t col = 0; col < NUM_COLS; col++) {
+        Serial.print(debouncedBtns[row][col] == LOW ? "X " : ". ");
+      }
+      Serial.println();
+    }
+    Serial.println();
+
+    for (size_t row = 0; row < NUM_ROWS; row++) {
+      Serial.println(results[row], BIN);
+    }
+
+    lastPrint = millis();
+  }
 }
