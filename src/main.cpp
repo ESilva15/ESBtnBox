@@ -38,6 +38,7 @@
 #include <Arduino.h>
 #include "595n.h"
 #include "165.h"
+#include "rotaryEncoder.h"
 #include <Joystick.h>
 
 // NOTES - 595N
@@ -145,6 +146,8 @@ Joystick_ Joystick(
   false
 );
 
+RotaryEncoder re1 = NewRotaryEncoder(14, 16);
+
 #define PULSE_DURATION 100 // ms
 
 const int pulseButtons[] = {
@@ -173,10 +176,12 @@ void setup() {
   }
 
   SR595N_write(&input, 0b00000100);
+  RotaryEncoder_init(&re1);
 }
 
 // TODO - comment this debugging thing at the end
 // unsigned long lastPrint = 0;
+int lastRE = 0;
 void loop(void) {
   unsigned long currentMillis = millis();
 
