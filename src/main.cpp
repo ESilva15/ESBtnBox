@@ -179,49 +179,11 @@ void setup() {
 // unsigned long lastPrint = 0;
 void loop(void) {
   unsigned long currentMillis = millis();
-  // for (size_t r = 0; r < NUM_ROWS; r++) {
-  //   SR595N_write(&input, rows[r]);
-  //   byte result = SR165_read(&output);
-  //   for (size_t c = 0; c < NUM_COLS; c++) {
-  //     uint8_t reading = (result & colMasks[c]) ? HIGH : LOW;
-  //     int buttonIndex = r * NUM_COLS + c;
-  //
-  //     // Debounce logic
-  //     if (reading != lastReading[r][c]) {
-  //       lastDebounceTime[r][c] = currentMillis;
-  //     }
-  //
-  //     if ((currentMillis - lastDebounceTime[r][c]) > debounceDelay) {
-  //       if (reading != debouncedBtns[r][c]) {
-  //
-  //         // Uncomment this to have buttons acting normally
-  //         // Joystick.setButton(buttonIndex, (reading == LOW));
-  //         // Uncomment this to have buttons acting like keys
-  //         if (isPulseButton(buttonIndex)) {
-  //           if (reading != debouncedBtns[r][c]) {
-  //             Joystick.setButton(buttonIndex, HIGH);
-  //             pulseStartTime[buttonIndex] = currentMillis;
-  //             isPulsing[buttonIndex] = true;
-  //           } else {
-  //             Joystick.setButton(buttonIndex, (reading == LOW));
-  //           }
-  //         }
-  //
-  //         debouncedBtns[r][c] = reading;
-  //       }
-  //     }
-  //
-  //     lastReading[r][c] = reading;
-  //   }
-  // }
-  //
-  // for (int i = 0; i < JOYSTICK_BTN_COUNT; i++) {
-  //   if (isPulsing[i] && (currentMillis - pulseStartTime[i]) > PULSE_DURATION) {
-  //     Joystick.setButton(i, 0);
-  //     isPulsing[i] = false;
-  //   }
-  // }
-  
+
+  int dir = RotaryEncoder_read(&re1);
+  if (dir != lastRE) {
+    Serial.println(dir);
+  }
 
 
   for (size_t r = 0; r < NUM_ROWS; r++) {
@@ -264,9 +226,6 @@ void loop(void) {
       isPulsing[i] = false;
     }
   }
-
-
-
 
 
   // if (millis() - lastPrint >= 50) {
