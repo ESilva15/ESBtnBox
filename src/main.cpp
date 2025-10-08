@@ -133,20 +133,28 @@ SR595N input = NewSR595N(IN_SERIAL_PIN, IN_LATCH_PIN, IN_CLOCK_PIN);
 SR165 output = NewSR165(OUT_PARALLEL_LOAD_IN, OUT_CLOCK_ENABLE, 
                         OUT_CLOCK_IN, OUT_COMPLEMENTARY_OUT);
 
-#define JOYSTICK_BTN_COUNT 32
-#define JOYSTICK_HAT_COUNT 0
+#define JOYSTICK_MATRIX_BTN_COUNT 40
+#define JOYSTICK_MATRIX_HAT_COUNT 0
+#define JOYSTICK_RE_OFFSET 32
 Joystick_ Joystick(
   JOYSTICK_DEFAULT_REPORT_ID,
   JOYSTICK_TYPE_JOYSTICK,
-  JOYSTICK_BTN_COUNT, // Button count
-  JOYSTICK_HAT_COUNT, // Hat switch count
+  JOYSTICK_MATRIX_BTN_COUNT, // Button count
+  JOYSTICK_MATRIX_HAT_COUNT, // Hat switch count
   // no axes since this is just buttons
   false, false, false, false, false,
   false, false, false, false, false,
   false
 );
 
+
 RotaryEncoder re1 = NewRotaryEncoder(14, 16);
+RotaryEncoder re2 = NewRotaryEncoder(15, 18);
+// RE3 physically isn't working
+// RotaryEncoder re3 = NewRotaryEncoder(19, 20);
+RotaryEncoder re4 = NewRotaryEncoder(3, 2);
+RotaryEncoder* encoders[] = {&re1, &re2, &re4};
+const size_t ROTARY_ENCODER_COUNT = 3;
 
 #define PULSE_DURATION 100 // ms
 
@@ -155,8 +163,8 @@ const int pulseButtons[] = {
   18, 9, 4
 };
 const size_t NUM_PULSE_BTNS = sizeof(pulseButtons) / sizeof(pulseButtons[0]);
-unsigned long pulseStartTime[JOYSTICK_BTN_COUNT] = {0};
-bool isPulsing[JOYSTICK_BTN_COUNT] = {false};
+unsigned long pulseStartTime[JOYSTICK_MATRIX_BTN_COUNT] = {0};
+bool isPulsing[JOYSTICK_MATRIX_BTN_COUNT] = {false};
 
 bool isPulseButton(int idx) {
   for (size_t k = 0; k < NUM_PULSE_BTNS; k++) {
@@ -167,29 +175,49 @@ bool isPulseButton(int idx) {
   return false;
 }
 
+uint8_t joystickREPos(int8_t dir, size_t encPos) {
+   uint8_t btn = 32 + (encPos * 2);
+   if (dir == -1) {
+     btn += 1;
+   }
+
+   return btn;
+}
+
+void rotateRE(int8_t pos) {
+   Joystick.setButton(pos, HIGH);
+   delayMicroseconds(1000);
+   Joystick.setButton(pos, LOW);
+}
+
 void setup() {
   Serial.begin(115200);
 
   Joystick.begin();
-  for(int k = 0; k < JOYSTICK_BTN_COUNT; k++) {
+  for(int k = 0; k < JOYSTICK_MATRIX_BTN_COUNT; k++) {
     Joystick.setButton(k, 0);
   }
 
   SR595N_write(&input, 0b00000100);
-  RotaryEncoder_init(&re1);
+
+  for (size_t k = 0; k < ROTARY_ENCODER_COUNT; k++) {
+    RotaryEncoder_init(encoders[k]);
+  }
 }
 
 // TODO - comment this debugging thing at the end
 // unsigned long lastPrint = 0;
-int lastRE = 0;
 void loop(void) {
   unsigned long currentMillis = millis();
 
-  int dir = RotaryEncoder_read(&re1);
-  if (dir != lastRE) {
-    Serial.println(dir);
-  }
+  for (size_t k = 0; k < ROTARY_ENCODER_COUNT; k++) {
+    int dir = RotaryEncoder_read(encoders[k]);
 
+    if (dir != LOW) {
+      uint8_t btn = joystickREPos(dir, k);
+      rotateRE(btn);
+    }
+  }
 
   for (size_t r = 0; r < NUM_ROWS; r++) {
     SR595N_write(&input, rows[r]);
@@ -225,13 +253,12 @@ void loop(void) {
   }
 
   // End pulses after duration
-  for (int i = 0; i < JOYSTICK_BTN_COUNT; i++) {
+  for (int i = 0; i < JOYSTICK_MATRIX_BTN_COUNT; i++) {
     if (isPulsing[i] && (currentMillis - pulseStartTime[i]) > PULSE_DURATION) {
       Joystick.setButton(i, 0);
       isPulsing[i] = false;
     }
   }
-
 
   // if (millis() - lastPrint >= 50) {
   //   Serial.print("\033[2J\033[H");
