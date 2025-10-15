@@ -64,6 +64,7 @@ user and the first the one facing outwards
 - T-slot bracket which bolts to the t-slot and the arm: `./3DModel/tSlotAttachement.FCStd`
 - Front plate where all the buttons are mounted to: `./3DModel/frontPlate.FCStd`
 - Cover plate which where the "pcb" mounts and connects to the front plate: `./3DModel/pcbHolder.FCStd`
+- Very simple knob for the rotary encoders: `./3DModel/knob.FCStd`
 
 
 # Assembly
