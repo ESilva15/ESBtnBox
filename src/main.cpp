@@ -190,7 +190,7 @@ uint8_t joystickREPos(int8_t dir, size_t encPos) {
 // has elapsed to release it
 void rotateRE(int8_t pos) {
    Joystick.setButton(pos, HIGH);
-   delayMicroseconds(RE_PULSE_DURATION);
+   delay(RE_PULSE_DURATION);
    Joystick.setButton(pos, LOW);
 }
 
