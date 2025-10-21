@@ -184,9 +184,13 @@ uint8_t joystickREPos(int8_t dir, size_t encPos) {
    return btn;
 }
 
+// TODO
+// Make this non blocking:
+// - Set it has high, and on the following loops check if the required duration
+// has elapsed to release it
 void rotateRE(int8_t pos) {
    Joystick.setButton(pos, HIGH);
-   delayMicroseconds(1000);
+   delayMicroseconds(RE_PULSE_DURATION);
    Joystick.setButton(pos, LOW);
 }
 

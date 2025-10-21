@@ -4,6 +4,7 @@
 const int RE_NOCHANGE = 0;
 const int RE_CCW = -1;
 const int RE_CW = 1;
+const int RE_PULSE_DURATION = 20000; // microsseconds
 
 typedef struct {
   int clkPin;
